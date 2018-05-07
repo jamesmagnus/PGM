@@ -13,44 +13,105 @@
 
 static void compute_new_state (int y, int x)
 {
-  unsigned n = 0;
-  
-  if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
+    unsigned n = 0;
 
-    for (int i = y - 1; i <= y + 1; i++)
-      for (int j = x - 1; j <= x + 1; j++)
-	n += (cur_img (i, j) != 0);
+    if (x > 0 && x < DIM - 1 && y > 0 && y < DIM - 1) {
 
-    if (cur_img (y, x) != 0) {
-      if (n == 3 || n == 4)
-	n = 0xFFFF00FF;
-      else
-	n = 0;
-    } else {
-      if (n == 3)
-	n = 0xFFFF00FF;
-      else
-	n = 0;
+        for (int i = y - 1; i <= y + 1; i++)
+        for (int j = x - 1; j <= x + 1; j++)
+        n += (cur_img (i, j) != 0);
+
+        if (cur_img (y, x) != 0) {
+            if (n == 3 || n == 4)
+            n = 0xFFFF00FF;
+            else
+            n = 0;
+        } else {
+            if (n == 3)
+            n = 0xFFFF00FF;
+            else
+            n = 0;
+        }
+
+        next_img (y, x) = n;
     }
-  
-    next_img (y, x) = n;
-  }
 }
 
 
 // Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
+/*unsigned vie_compute_seq (unsigned nb_iter)
+{
+for (unsigned it = 1; it <= nb_iter; it ++) {
+
+for (int i = 0; i < DIM; i++) {
+for (int j = 0; j < DIM; j++) {
+compute_new_state (i, j);
+}
+}
+
+swap_images ();
+}
+
+return 0;
+}*/
+
+// Version séquentielle avec tuiles
+/*unsigned vie_compute_seq (unsigned nb_iter)
+{
+for (unsigned it = 1; it <= nb_iter; it ++) {
+for(int tx = 0; tx < DIM/TILEX; ++tx) {
+for(int ty = 0; ty < DIM/TILEY; ++ty) {
+for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++) {
+for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++) {
+compute_new_state (i, j);
+}
+}
+}
+}
+
+swap_images ();
+}
+
+return 0;
+}*/
+
+bool tile_need_update(int tx, int ty)
+{
+    for(int x = (tx ? tx - 1 : tx); x < ((tx == TILEX - 1) ? tx : tx + 1); ++x) {
+        for(int y = (ty ? ty - 1 : ty); y < ((ty == TILEY - 1) ? ty : ty + 1); ++y) {
+            if(change[x][y])
+                return true;
+        }
+    }
+    return false;
+}
+// Version séquentielle optimisée avec tuiles
 unsigned vie_compute_seq (unsigned nb_iter)
 {
-  for (unsigned it = 1; it <= nb_iter; it ++) {
+    for (unsigned it = 1; it <= nb_iter; it ++) {
 
-    for (int i = 0; i < DIM; i++)
-      for (int j = 0; j < DIM; j++)
-	compute_new_state (i, j);
+        for(int tx = 0; tx < DIM/TILEX; ++tx) {
+            for(int ty = 0; ty < DIM/TILEY; ++ty) {
+                if(tile_need_update(tx, ty)) {
+                    change[tx][ty] = false;  //TODO false
+                    for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++) {
+                        for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++) {
+                            int prec = cur_img (i, j);
+                            compute_new_state (i, j);   //TODO ca marche pas
+                            printf("%d -> %d\n", prec, next_img(i,j));
+                            if(prec != next_img (i, j)) {
+                                change[tx][ty] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-    swap_images ();
-  }
+        swap_images ();
+    }
 
-  return 0;
+    return 0;
 }
 
 
@@ -62,101 +123,101 @@ void draw_random (void);
 
 void vie_draw (char *param)
 {
-  char func_name [1024];
-  void (*f)(void) = NULL;
+    char func_name [1024];
+    void (*f)(void) = NULL;
 
-  sprintf (func_name, "draw_%s", param);
-  f = dlsym (DLSYM_FLAG, func_name);
+    sprintf (func_name, "draw_%s", param);
+    f = dlsym (DLSYM_FLAG, func_name);
 
-  if (f == NULL) {
-    printf ("Cannot resolve draw function: %s\n", func_name);
-    f = draw_guns;
-  }
-  
-  f ();
+    if (f == NULL) {
+        printf ("Cannot resolve draw function: %s\n", func_name);
+        f = draw_guns;
+    }
+
+    f ();
 }
 
 static unsigned couleur = 0xFFFF00FF; // Yellow
 
 static void gun (int x, int y, int version)
 {
-  bool glider_gun [11][38] =
+    bool glider_gun [11][38] =
     {
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0 },
-      { 0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
-      { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0 },
+        { 0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
+        { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 },
     };
 
-  if (version == 0)
+    if (version == 0)
     for (int i=0; i < 11; i++)
-      for(int j=0; j < 38; j++)
-	if (glider_gun [i][j])
-	  cur_img (i+x, j+y) = couleur;
+    for(int j=0; j < 38; j++)
+    if (glider_gun [i][j])
+    cur_img (i+x, j+y) = couleur;
 
-  if (version == 1)
+    if (version == 1)
     for (int i=0; i < 11; i++)
-      for(int j=0; j < 38; j++)
-	if (glider_gun [i][j])
-	  cur_img (x-i, j+y) = couleur;
+    for(int j=0; j < 38; j++)
+    if (glider_gun [i][j])
+    cur_img (x-i, j+y) = couleur;
 
-  if (version == 2)
+    if (version == 2)
     for (int i=0; i < 11; i++)
-      for(int j=0; j < 38; j++)
-	if (glider_gun [i][j])
-	  cur_img (x-i, y-j) = couleur;
+    for(int j=0; j < 38; j++)
+    if (glider_gun [i][j])
+    cur_img (x-i, y-j) = couleur;
 
-  if (version == 3)
+    if (version == 3)
     for (int i=0; i < 11; i++)
-      for(int j=0; j < 38; j++)
-	if (glider_gun [i][j])
-	  cur_img (i+x, y-j) = couleur;
+    for(int j=0; j < 38; j++)
+    if (glider_gun [i][j])
+    cur_img (i+x, y-j) = couleur;
 
 }
 
 void draw_stable (void)
 {
-  for (int i=1; i < DIM-2; i+=4)
+    for (int i=1; i < DIM-2; i+=4)
     for(int j=1; j < DIM-2; j+=4)
-      cur_img (i, j) = cur_img (i, (j+1)) =cur_img ((i+1), j) =cur_img ((i+1), (j+1)) = couleur;
+    cur_img (i, j) = cur_img (i, (j+1)) =cur_img ((i+1), j) =cur_img ((i+1), (j+1)) = couleur;
 }
 
 void draw_guns (void)
 {
-  memset(&cur_img (0,0), 0, DIM*DIM* sizeof(cur_img (0,0))); 
-  
-  gun (0, 0, 0);
-  gun (0,  DIM-1 , 3);
-  gun (DIM - 1 , DIM - 1, 2);
-  gun (DIM - 1 , 0, 1);
+    memset(&cur_img (0,0), 0, DIM*DIM* sizeof(cur_img (0,0)));
+
+    gun (0, 0, 0);
+    gun (0,  DIM-1 , 3);
+    gun (DIM - 1 , DIM - 1, 2);
+    gun (DIM - 1 , 0, 1);
 }
 
 void draw_random (void)
 {
-  for (int i=1; i < DIM-1; i++)
+    for (int i=1; i < DIM-1; i++)
     for(int j=1; j < DIM-1; j++)
-      cur_img (i, j) = (random() & 01) ? couleur : 0;
+    cur_img (i, j) = (random() & 01) ? couleur : 0;
 }
 
 // Une tête de clown apparaît à l'itération 110
 void draw_clown (void)
 {
-  int i = DIM/2, j = i;
+    int i = DIM/2, j = i;
 
-  cur_img (i, j-1) = couleur;
-  cur_img (i, j) = couleur;
-  cur_img (i, j+1) = couleur;
-  
-  cur_img (i+1, j-1) = couleur;
-  cur_img (i+1, j+1) = couleur;
+    cur_img (i, j-1) = couleur;
+    cur_img (i, j) = couleur;
+    cur_img (i, j+1) = couleur;
 
-  cur_img (i+2, j-1) = couleur;
-  cur_img (i+2, j+1) = couleur;
+    cur_img (i+1, j-1) = couleur;
+    cur_img (i+1, j+1) = couleur;
+
+    cur_img (i+2, j-1) = couleur;
+    cur_img (i+2, j+1) = couleur;
 }

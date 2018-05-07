@@ -16,5 +16,7 @@
 
 #define DEFAULT_KERNEL "invert"
 
+#define TILE_SIZE 32
+
 
 #endif
