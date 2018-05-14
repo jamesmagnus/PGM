@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "ocl.h"
 #include "scheduler.h"
+#include "constants.h"
 
 #include <stdbool.h>
 
@@ -19,18 +20,18 @@ static void compute_new_state (int y, int x)
 
         for (int i = y - 1; i <= y + 1; i++)
         for (int j = x - 1; j <= x + 1; j++)
-        n += (cur_img (i, j) != 0);
+        n += (cur_img (i, j) == YELLOW);
 
-        if (cur_img (y, x) != 0) {
+        if (cur_img (y, x) == YELLOW) {
             if (n == 3 || n == 4)
-            n = 0xFFFF00FF;
+            n = YELLOW;
             else
-            n = 0;
+            n = BLACK;
         } else {
             if (n == 3)
-            n = 0xFFFF00FF;
+            n = YELLOW;
             else
-            n = 0;
+            n = BLACK;
         }
 
         next_img (y, x) = n;
@@ -77,30 +78,60 @@ return 0;
 
 bool tile_need_update(int tx, int ty)
 {
-    for(int x = (tx ? tx - 1 : tx); x < ((tx == TILEX - 1) ? tx : tx + 1); ++x) {
-        for(int y = (ty ? ty - 1 : ty); y < ((ty == TILEY - 1) ? ty : ty + 1); ++y) {
-            if(change[x][y])
-                return true;
+    for(int x = tx - 1; x <= tx + 1; ++x) {
+        for(int y = ty - 1; y <= ty + 1; ++y) {
+            if(x >= 0 && y >= 0 && x < (DIM/TILEX) && y < (DIM/TILEY) && change[x][y])
+            return true;
         }
     }
     return false;
 }
+
+void color_tile(int tx, int ty, unsigned color) {
+    for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++) {
+        for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++) {
+            if(next_img(i, j) != YELLOW)
+                next_img(i, j) = color;
+        }
+    }
+}
+
+void swap_changes(){
+    bool **tmp = change;
+    change = next_change;
+    next_change = tmp;
+}
+
 // Version séquentielle optimisée avec tuiles
 unsigned vie_compute_seq (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it ++) {
+        for(int tx = 0; tx < DIM/TILEX; ++tx) {
+            for(int ty = 0; ty < DIM/TILEY; ++ty) {
+                next_change[tx][ty] = false;
+            }
+        }
 
         for(int tx = 0; tx < DIM/TILEX; ++tx) {
             for(int ty = 0; ty < DIM/TILEY; ++ty) {
                 if(tile_need_update(tx, ty)) {
-                    change[tx][ty] = false;  //TODO false
                     for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++) {
                         for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++) {
                             int prec = cur_img (i, j);
-                            compute_new_state (i, j);   //TODO ca marche pas
-                            printf("%d -> %d\n", prec, next_img(i,j));
-                            if(prec != next_img (i, j)) {
-                                change[tx][ty] = true;
+                            compute_new_state (i, j);
+                            if(!next_change[tx][ty] && ((prec == BLACK && next_img(i, j) == YELLOW) || (prec == YELLOW && next_img(i, j) == BLACK))) {
+                                next_change[tx][ty] = true;
+                            }
+                        }
+                    }
+
+                    if(next_change[tx][ty]) {
+                        color_tile(tx, ty, RED);
+
+                        for(int x = tx - 1; x <= tx + 1; ++x) {
+                            for(int y = ty - 1; y <= ty + 1; ++y) {
+                                if(x >= 0 && y >= 0 && x < (DIM/TILEX) && y < (DIM/TILEY) && x != tx && y != ty && !next_change[x][y])
+                                    color_tile(x, y, GREEN);
                             }
                         }
                     }
@@ -108,7 +139,8 @@ unsigned vie_compute_seq (unsigned nb_iter)
             }
         }
 
-        swap_images ();
+        swap_changes();
+        swap_images();
     }
 
     return 0;

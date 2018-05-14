@@ -35,7 +35,7 @@ void_func_t the_refresh_img = NULL;
 char *version = "seq";
 unsigned opencl_used = 0;
 
-bool **change;
+bool **change, **next_change;
 
 static void update_refresh_rate (int p)
 {
@@ -236,9 +236,12 @@ int main (int argc, char **argv)
   // Now we now the value of DIM
 
   change = (bool**)malloc((DIM/TILEX) * sizeof(bool*));
+  next_change = (bool**)malloc((DIM/TILEX) * sizeof(bool*));
   for(int i = 0; i < DIM/TILEX; ++i) {
       change[i] = (bool*)malloc(DIM/TILEY * sizeof(bool));
+      next_change[i] = (bool*)malloc(DIM/TILEY * sizeof(bool));
       memset(change[i], true, DIM/TILEY * sizeof(bool));
+      memset(next_change[i], false, DIM/TILEY * sizeof(bool));
     }
 
   if (opencl_used) {

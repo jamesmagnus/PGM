@@ -138,7 +138,7 @@ void ocl_init (void)
 
   if (platform_no >= nb_platforms)
     exit_with_error ("Platform number #%d too high\n", platform_no);
-    
+
   err = clGetPlatformInfo (pf [platform_no], CL_PLATFORM_NAME, 1024, name, NULL);
   check (err, "Failed to get Platform Info");
 
@@ -162,7 +162,7 @@ void ocl_init (void)
 
   err = clGetDeviceInfo (devices [dev], CL_DEVICE_NAME, 1024, name, NULL);
   check (err, "Cannot get type of device");
-    
+
   err = clGetDeviceInfo (devices [dev], CL_DEVICE_TYPE, sizeof (cl_device_type), &dtype, NULL);
   check (err, "Cannot get type of device");
 
@@ -171,7 +171,7 @@ void ocl_init (void)
   err = clGetDeviceInfo (devices [dev], CL_DEVICE_MAX_WORK_GROUP_SIZE,
 			 sizeof(size_t), &max_workgroup_size, NULL);
   check (err, "Cannot get max workgroup size");
-  
+
   if (graphics_display_enabled ()) {
 #ifdef __APPLE__
     CGLContextObj cgl_context = CGLGetCurrentContext ();
@@ -192,9 +192,9 @@ void ocl_init (void)
     };
 #endif
 
-    context = clCreateContext (properties, 1, &devices [dev], NULL, NULL, &err); 
+    context = clCreateContext (properties, 1, &devices [dev], NULL, NULL, &err);
   } else
-    context = clCreateContext (NULL, 1, &devices [dev], NULL, NULL, &err); 
+    context = clCreateContext (NULL, 1, &devices [dev], NULL, NULL, &err);
 
   check (err, "Failed to create compute context");
 
@@ -243,7 +243,7 @@ void ocl_init (void)
 	fprintf (stderr, "---------------------------\n");
       }
     }
-    
+
     if(err != CL_SUCCESS)
       exit_with_error ("Failed to build program!\n");
   }
@@ -254,7 +254,7 @@ void ocl_init (void)
   check (err, "Failed to create compute kernel");
 
   printf ("Using kernel: %s\n", kernel_name);
-  
+
   update_kernel = clCreateKernel (program, "update_texture", &err);
   check (err, "Failed to create update kernel");
 
@@ -262,6 +262,11 @@ void ocl_init (void)
   //
   queue = clCreateCommandQueue (context, devices [dev], CL_QUEUE_PROFILING_ENABLE, &err);
   check (err,"Failed to create command queue");
+
+
+// Pour récupérer le résultat d'un test, on peut créer un buffers
+// de la taille d'un entier genre changement de la même manière que
+// les autres
 
   // Allocate buffers inside device memory
   //
@@ -305,7 +310,7 @@ unsigned ocl_compute (unsigned nb_iter)
   size_t local[2]  = { TILEX, TILEY };  // local domain size for our calculation
 
   for (unsigned it = 1; it <= nb_iter; it ++) {
-    
+
     // Set kernel arguments
     //
     err = 0;

@@ -15,6 +15,7 @@ extern char *draw_param;
 extern unsigned DIM;
 extern unsigned GRAIN;
 
-extern bool** change;
+extern bool **change;
+extern bool **next_change;
 
 #endif

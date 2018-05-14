@@ -17,6 +17,9 @@
 #define DEFAULT_KERNEL "invert"
 
 #define TILE_SIZE 32
-
+#define RED 0xAA0000FF
+#define YELLOW 0xFFFF00FF
+#define GREEN 0x00AA00FF
+#define BLACK 0
 
 #endif
