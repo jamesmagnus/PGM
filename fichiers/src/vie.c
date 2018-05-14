@@ -91,7 +91,7 @@ void color_tile(int tx, int ty, unsigned color) {
     for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++) {
         for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++) {
             if(next_img(i, j) != YELLOW)
-                next_img(i, j) = color;
+            next_img(i, j) = color;
         }
     }
 }
@@ -124,20 +124,27 @@ unsigned vie_compute_seq (unsigned nb_iter)
                             }
                         }
                     }
+                }
+                color_tile(tx, ty, BLACK);
+            }
+        }
 
-                    if(next_change[tx][ty]) {
-                        color_tile(tx, ty, RED);
+        for(int tx = 0; tx < DIM/TILEX; ++tx) {
+            for(int ty = 0; ty < DIM/TILEY; ++ty) {
+                if(next_change[tx][ty]) {
+                    color_tile(tx, ty, RED);
 
-                        for(int x = tx - 1; x <= tx + 1; ++x) {
-                            for(int y = ty - 1; y <= ty + 1; ++y) {
-                                if(x >= 0 && y >= 0 && x < (DIM/TILEX) && y < (DIM/TILEY) && x != tx && y != ty && !next_change[x][y])
-                                    color_tile(x, y, GREEN);
+                    for(int x = tx - 1; x <= tx + 1; ++x) {
+                        for(int y = ty - 1; y <= ty + 1; ++y) {
+                            if(x >= 0 && y >= 0 && x < (DIM/TILEX) && y < (DIM/TILEY) && (x != tx || y != ty) && !next_change[x][y]) {
+                                color_tile(x, y, GREEN);
                             }
                         }
                     }
                 }
             }
         }
+
 
         swap_changes();
         swap_images();
