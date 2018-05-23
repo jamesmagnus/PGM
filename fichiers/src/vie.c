@@ -186,6 +186,49 @@ unsigned vie_compute_omp(unsigned nb_iter)
     return 0;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+// Version OMP avec tuiles
+unsigned vie_compute_omp_tile (unsigned nb_iter)
+{
+    for (unsigned it = 1; it <= nb_iter; it++) {
+#pragma omp parallel for collapse(2) schedule(static)
+        for (int tx = 0; tx < DIM / TILEX; ++tx)
+            for (int ty = 0; ty < DIM / TILEY; ++ty)
+                for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++)
+                    for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++)
+                        compute_new_state (i, j);
+
+        swap_images ();
+    }
+
+    return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// Version OMP optimisée avec tuiles
+unsigned vie_compute_omp_tile_opt (unsigned nb_iter)
+{
+    for (unsigned it = 1; it <= nb_iter; it++) {
+        reset_next_change();
+#pragma omp parallel for collapse(2) schedule(static)
+        for (int tx = 0; tx < DIM / TILEX; ++tx)
+            for (int ty = 0; ty < DIM / TILEY; ++ty)
+                if (tile_need_update(tx, ty))
+                    update_tile(tx, ty);
+
+#if COLOR_TILES
+        show_tile_color_debug();
+#endif
+
+        swap_changes(); //swap changes and next_changes boolean matrixs
+        swap_images();
+    }
+
+    return 0;
+}
+
 ///////////////////////////// Configuration initiale
 
 void draw_stable (void);
