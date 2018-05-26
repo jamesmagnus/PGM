@@ -15,8 +15,8 @@
 #define MAX_PLATFORMS 3
 #define MAX_DEVICES   5
 
-unsigned TILEX = 16;
-unsigned TILEY = 16;
+unsigned TILEX = 32;
+unsigned TILEY = 32;
 unsigned SIZE = 0;
 
 static char *kernel_name = DEFAULT_KERNEL;
@@ -318,8 +318,13 @@ unsigned ocl_compute (unsigned nb_iter)
     err |= clSetKernelArg (compute_kernel, 1, sizeof (cl_mem), &next_buffer);
     check (err, "Failed to set kernel arguments");
 
-    err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
+#ifdef __APPLE__
+    err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, NULL,
 				  0, NULL, NULL);
+#else 
+	err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
+				  0, NULL, NULL);
+#endif
     check (err, "Failed to execute kernel");
 
     // Swap buffers

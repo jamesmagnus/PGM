@@ -8,6 +8,11 @@
 //#endif
 
 
+#define RED 0xAA0000FF
+#define YELLOW 0xFFFF00FF
+#define GREEN 0x00AA00FF
+#define BLACK 0x0
+
 // NE PAS MODIFIER
 static int4 color_to_int4 (unsigned c)
 {
@@ -53,7 +58,26 @@ __kernel void vie (__global unsigned *in, __global unsigned *out)
   int x = get_global_id (0);
   int y = get_global_id (1);
 
-  // TODO
+    unsigned couleur = 0;
+
+	for (int i = y - 1; i <= y + 1; i++)
+		for (int j = x - 1; j <= x + 1; j++)
+			couleur += (in [y * DIM + x] == YELLOW);
+
+	if (in [y * DIM + x] == YELLOW) {
+		if ((couleur == 3) || (couleur == 4))
+			couleur = YELLOW;
+		else
+			couleur = BLACK;
+	}
+	else {
+		if (couleur == 3)
+			couleur = YELLOW;
+		else
+			couleur = BLACK;
+	}
+
+	out [y * DIM + x] = couleur;
 }
 
 

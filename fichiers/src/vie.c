@@ -212,7 +212,7 @@ unsigned vie_compute_omp_tile_opt (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
         reset_next_change();
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(dynamic)
         for (int tx = 0; tx < DIM / TILEX; ++tx)
             for (int ty = 0; ty < DIM / TILEY; ++ty)
                 if (tile_need_update(tx, ty))
