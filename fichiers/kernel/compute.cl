@@ -57,27 +57,27 @@ __kernel void vie (__global unsigned *in, __global unsigned *out)
 {
   int x = get_global_id (0);
   int y = get_global_id (1);
-
-    unsigned couleur = 0;
-
-	for (int i = y - 1; i <= y + 1; i++)
-		for (int j = x - 1; j <= x + 1; j++)
-			couleur += (in [y * DIM + x] == YELLOW);
-
-	if (in [y * DIM + x] == YELLOW) {
-		if ((couleur == 3) || (couleur == 4))
-			couleur = YELLOW;
-		else
-			couleur = BLACK;
-	}
-	else {
-		if (couleur == 3)
-			couleur = YELLOW;
-		else
-			couleur = BLACK;
-	}
-
-	out [y * DIM + x] = couleur;
+  
+  unsigned couleur = 0;
+  
+  for (int i = y - 1; i <= y + 1; i++)
+    for (int j = x - 1; j <= x + 1; j++)
+      couleur += (in [i * DIM + j] == YELLOW);
+  
+  if (in [y * DIM + x] == YELLOW) {
+    if ((couleur == 3) || (couleur == 4))
+      couleur = YELLOW;
+    else
+      couleur = BLACK;
+  }
+  else {
+    if (couleur == 3)
+      couleur = YELLOW;
+    else
+      couleur = BLACK;
+  }
+  
+  out [y * DIM + x] = couleur;
 }
 
 
