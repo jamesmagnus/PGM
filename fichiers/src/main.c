@@ -235,6 +235,7 @@ int main (int argc, char **argv)
   graphics_init ();
   // Now we now the value of DIM
 
+  if (!opencl_used) {
   change = (bool**)malloc((DIM/TILEX) * sizeof(bool*));
   next_change = (bool**)malloc((DIM/TILEX) * sizeof(bool*));
   for(int i = 0; i < DIM/TILEX; ++i) {
@@ -243,6 +244,7 @@ int main (int argc, char **argv)
       memset(change[i], true, DIM/TILEY * sizeof(bool));
       memset(next_change[i], false, DIM/TILEY * sizeof(bool));
     }
+  }
 
   if (opencl_used) {
 
@@ -388,12 +390,14 @@ int main (int argc, char **argv)
 
     graphics_clean ();
 
-    for(int i = 0; i < DIM/TILEX; ++i) {
-        free(change[i]);
-        free(next_change[i]);
+    if (!opencl_used) {
+      for(int i = 0; i < DIM/TILEX; ++i) {
+          free(change[i]);
+          free(next_change[i]);
+      }
+      free(change);
+      free(next_change);
     }
-    free(change);
-    free(next_change);
 
     if (the_finalize != NULL)
     the_finalize ();
