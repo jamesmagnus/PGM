@@ -280,20 +280,17 @@ void ocl_init (void)
   if (!next_buffer)
     exit_with_error ("Failed to allocate output buffer");
 
-  bool *tchange = malloc(sizeof(bool) * (DIM/TILEX) * (DIM/TILEY));
-  memset(tchange, true, (DIM/TILEX) * (DIM/TILEY) * sizeof(bool));
-  bool *fchange = malloc(sizeof(bool) * (DIM/TILEX) * (DIM/TILEY));
-  memset(fchange, false, (DIM/TILEX) * (DIM/TILEY) * sizeof(bool));
 
-  change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(bool) * (DIM/TILEX) * (DIM/TILEY), &tchange, NULL);
+  change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(char) * (DIM/TILEX) * (DIM/TILEY), NULL, NULL);
   if (!change_buffer)
     exit_with_error ("Failed to allocate change buffer");
 
-  next_change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(bool) * (DIM/TILEX) * (DIM/TILEY), &fchange, NULL);
+  next_change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(char) * (DIM/TILEX) * (DIM/TILEY), NULL, NULL);
   if (!next_change_buffer)
     exit_with_error ("Failed to allocate next_change buffer");
 
 
+  // clEnqueueFillBuffer(queue, change_buffer, )
   printf ("Using %dx%d workitems grouped in %dx%d tiles \n", SIZE, SIZE, TILEX, TILEY);
 }
 
@@ -315,15 +312,19 @@ void ocl_send_image (unsigned *image)
 			      sizeof (unsigned) * DIM * DIM, image, 0, NULL, NULL);
   check (err, "Failed to write to next_buffer");
 
+  char *table_of_trues = malloc(sizeof(char) * (DIM/TILEX) * (DIM/TILEY));
+  memset(table_of_trues, 1, sizeof(char) * (DIM/TILEX) * (DIM/TILEY));
+
   err = clEnqueueWriteBuffer (queue, change_buffer, CL_TRUE, 0,
-			      sizeof (bool) * (DIM/TILEX) * (DIM/TILEY), image, 0, NULL, NULL);
+			      sizeof (char) * (DIM/TILEX) * (DIM/TILEY), table_of_trues, 0, NULL, NULL);
   check (err, "Failed to write to change_buffer");
 
   err = clEnqueueWriteBuffer (queue, next_change_buffer, CL_TRUE, 0,
-			      sizeof (bool) * (DIM/TILEX) * (DIM/TILEY), image, 0, NULL, NULL);
+			      sizeof (char) * (DIM/TILEX) * (DIM/TILEY), table_of_trues, 0, NULL, NULL);
   check (err, "Failed to write to next_change_buffer");
 
   PRINT_DEBUG ('o', "Initial image sent to device.\n");
+  free(table_of_trues);
 }
 
 unsigned ocl_compute (unsigned nb_iter)

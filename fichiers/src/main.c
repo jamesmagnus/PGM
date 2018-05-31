@@ -332,7 +332,7 @@ int main (int argc, char **argv)
             duree_iteration = TIME_DIFF (t1,t2) ;
             temps += duree_iteration;
             int nbiter = (n > 0 ?  n : refresh_rate);
-            fprintf (stderr,
+            fprintf (stdout,
               "\r dernière iteration  %ld.%03ld -  temps moyen par itération : %ld.%03ld ",
               duree_iteration/ nbiter / 1000, (duree_iteration/nbiter) % 1000 ,
               temps / 1000 / (nbiter+iterations) , (temps/(nbiter+iterations)) % 1000);
@@ -385,7 +385,7 @@ int main (int argc, char **argv)
       gettimeofday (&t2, NULL);
 
       temps = TIME_DIFF (t1, t2);
-      fprintf (stderr, "%ld.%03ld\n", temps / 1000, temps % 1000);
+      fprintf (stdout, "%ld.%03ld\n", temps / 1000, temps % 1000);
     }
 
     graphics_clean ();

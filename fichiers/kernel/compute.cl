@@ -11,6 +11,8 @@
 #define GREEN 0x00AA00FF
 #define BLACK 0x0
 
+#define COLOR_TILES 0
+
 // NE PAS MODIFIER
 static int4 color_to_int4 (unsigned c)
 {
@@ -53,6 +55,7 @@ __kernel void scrollup (__global unsigned *in,
 /////////////////////////////// vie
 ////////////////////////////////////////////////////////////////////////////////
 
+
 static unsigned random_color()
 {
     unsigned color = 0x000000ff;
@@ -93,8 +96,8 @@ static unsigned compute_new_color(__global unsigned *in,
 
 __kernel void vie (__global unsigned *in,
                    __global unsigned *out,
-                   __global bool *change,
-                   __global bool *next_change)
+                   __global char *change,
+                   __global char *next_change)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -116,8 +119,8 @@ static bool tile_need_update(int tx,
 
 __kernel void vie_opt (__global unsigned *in,
                        __global unsigned *out,
-                       __global bool *change,
-                       __global bool *next_change)
+                       __global char *change,
+                       __global char *next_change)
 {
     int x = get_global_id (0);
     int y = get_global_id (1);
@@ -131,30 +134,57 @@ __kernel void vie_opt (__global unsigned *in,
     int tx = (xglob - xloc) / TILEX;
     int ty = (yglob - yloc) / TILEY;
 
-    __local bool to_update;
+    __local char to_update;
 
-// Check if this tile has to be updated
+    // Check if this tile has to be updated
     if (( xloc == 0) && ( yloc == 0) ) {
-        to_update = false;
+      to_update = 0;
 
-        for (int x = tx - 1; x <= tx + 1; ++x)
-            if (( x >= 0) && ( x < DIM / TILEX) )
-                for (int y = ty - 1; y <= ty + 1; ++y)
-                    if (( y >= 0) && ( y < DIM / TILEY)
-                        /*&& change[y * (DIM / TILEY) + x]*/) //TODO toujours faux
-                        to_update = true;
+      for (int x = tx - 1; x <= tx + 1; ++x)
+          if (( x >= 0) && ( x < DIM / TILEX) )
+              for (int y = ty - 1; y <= ty + 1; ++y)
+                  if (( y >= 0) && ( y < DIM / TILEY)
+                      && change[y * (DIM / TILEY) + x])
+                      to_update = 1;
 
-        next_change[ty * (DIM / TILEY) + tx] = to_update;
+      next_change[ty * (DIM / TILEY) + tx] = to_update;
     }
 
 // Be sure that every thread of the group wait
 // for to_update being computed
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if (to_update)
-        out[yglob * DIM + xglob] = compute_new_color(in, xglob, yglob);
-    else
+    __local char changed;
+
+    if (xloc == 0 && yloc == 0)
+      changed = 0;
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    if (to_update) {
+        unsigned color = compute_new_color(in, xglob, yglob);
+        if (color != in[yglob * DIM + xglob] 
+  #if COLOR_TILES 
+        && !(color == BLACK && in[yglob * DIM + xglob] == GREEN)
+  #endif  
+        ) {
+          changed = 1;
+        }
+        out[yglob * DIM + xglob] = color;
+    }
+    else {
+  #if COLOR_TILES
+        out[yglob * DIM + xglob] = GREEN;
+  #else
         out[yglob * DIM + xglob] = in[yglob * DIM + xglob];
+  #endif
+    }
+
+    barrier(CLK_GLOBAL_MEM_FENCE);
+
+    if (xloc == 0 && yloc == 0) 
+      next_change[ty * (DIM/TILEY) + tx] = changed;
+
 }
 
 // NE PAS MODIFIER
