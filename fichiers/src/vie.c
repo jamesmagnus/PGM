@@ -252,6 +252,11 @@ void vie_draw (char *param)
     f ();
 }
 
+void vie_opt_draw (char *param)
+{
+    vie_draw(param);
+}
+
 static unsigned couleur = 0xFFFF00FF; // Yellow
 
 static void gun (int x,
