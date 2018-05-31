@@ -7,6 +7,7 @@
 #include "constants.h"
 
 #include <stdbool.h>
+#include <omp.h>
 
 #define COLOR_TILES 1
 
@@ -235,12 +236,18 @@ unsigned vie_compute_omp_tile_opt (unsigned nb_iter)
 unsigned vie_compute_omp_tile_task (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
-#pragma omp parallel for collapse(2) schedule(static)
-        for (int tx = 0; tx < DIM / TILEX; ++tx)
-            for (int ty = 0; ty < DIM / TILEY; ++ty)
-                for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++)
-                    for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++)
-                        compute_new_state (i, j);
+#pragma omp parallel
+        {
+#pragma omp single
+            {
+                for (int tx = 0; tx < DIM / TILEX; ++tx)
+                    for (int ty = 0; ty < DIM / TILEY; ++ty)
+#pragma omp task
+                        for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++)
+                            for (int j = ty * TILEY; j < (ty + 1) * TILEY; j++)
+                                compute_new_state (i, j);
+            }
+        }
 
         swap_images ();
     }
@@ -255,11 +262,17 @@ unsigned vie_compute_omp_tile_task_opt (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
         reset_next_change();
-#pragma omp parallel for collapse(2) schedule(dynamic)
-        for (int tx = 0; tx < DIM / TILEX; ++tx)
-            for (int ty = 0; ty < DIM / TILEY; ++ty)
-                if (tile_need_update(tx, ty))
-                    update_tile(tx, ty);
+#pragma omp parallel
+        {
+#pragma omp single
+            {
+                for (int tx = 0; tx < DIM / TILEX; ++tx)
+                    for (int ty = 0; ty < DIM / TILEY; ++ty)
+#pragma omp task
+                        if (tile_need_update(tx, ty))
+                            update_tile(tx, ty);
+            }
+        }
 
 #if COLOR_TILES
         show_tile_color_debug();
