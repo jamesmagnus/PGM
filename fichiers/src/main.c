@@ -429,8 +429,8 @@ int main (int argc,
 
         gettimeofday (&t2, NULL);
 
-        temps = TIME_DIFF (t1, t2);
-        fprintf (stderr, "%ld.%03ld\n", temps / 1000, temps % 1000);
+      temps = TIME_DIFF (t1, t2);
+      fprintf (stdout, "%ld.%03ld\n", temps / 1000, temps % 1000);
     }
 
     graphics_clean ();

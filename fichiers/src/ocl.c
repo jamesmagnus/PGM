@@ -260,10 +260,21 @@ void ocl_init (void)
     compute_kernel = clCreateKernel (program, kernel_name, &err);
     check (err, "Failed to create compute kernel");
 
-    printf ("Using kernel: %s\n", kernel_name);
+      printf ("Using kernel: %s\n", kernel_name);
 
-    update_kernel = clCreateKernel (program, "update_texture", &err);
+          update_kernel = clCreateKernel (program, "update_texture", &err);
     check (err, "Failed to create update kernel");
+
+
+
+  change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(char) * (DIM/TILEX) * (DIM/TILEY), NULL, NULL);
+  if (!change_buffer)
+    exit_with_error ("Failed to allocate change buffer");
+
+  next_change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(char) * (DIM/TILEX) * (DIM/TILEY), NULL, NULL);
+  if (!next_change_buffer)
+    exit_with_error ("Failed to allocate next_change buffer");
+
 
     // Create a command queue
     //
@@ -289,22 +300,18 @@ void ocl_init (void)
     if (!next_buffer)
         exit_with_error ("Failed to allocate output buffer");
 
-    bool *tchange = malloc(sizeof(bool) * (DIM / TILEX) * (DIM / TILEY));
-    memset(tchange, true, (DIM / TILEX) * (DIM / TILEY) * sizeof(bool));
-    bool *fchange = malloc(sizeof(bool) * (DIM / TILEX) * (DIM / TILEY));
-    memset(fchange, false, (DIM / TILEX) * (DIM / TILEY) * sizeof(bool));
-
+    
     change_buffer = clCreateBuffer(context,
-                                   CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                   sizeof(bool) * (DIM / TILEX) * (DIM / TILEY),
-                                   &tchange, NULL);
+                                   CL_MEM_READ_WRITE,
+                                   sizeof(char) * (DIM / TILEX) * (DIM / TILEY),
+                                   NULL, NULL);
     if (!change_buffer)
         exit_with_error ("Failed to allocate change buffer");
 
     next_change_buffer = clCreateBuffer(context,
-                                        CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                        sizeof(bool) * (DIM / TILEX) *
-                                        (DIM / TILEY), &fchange, NULL);
+                                        CL_MEM_READ_WRITE,
+                                        sizeof(char) * (DIM / TILEX) *
+                                        (DIM / TILEY), NULL, NULL);
     if (!next_change_buffer)
         exit_with_error ("Failed to allocate next_change buffer");
 
@@ -322,27 +329,27 @@ void ocl_map_textures (GLuint texid)
 
 void ocl_send_image (unsigned *image)
 {
-    err = clEnqueueWriteBuffer (queue, cur_buffer, CL_TRUE, 0,
-                                sizeof (unsigned) * DIM * DIM, image, 0, NULL,
-                                NULL);
-    check (err, "Failed to write to cur_buffer");
+  err = clEnqueueWriteBuffer (queue, cur_buffer, CL_TRUE, 0,
+			      sizeof (unsigned) * DIM * DIM, image, 0, NULL, NULL);
+  check (err, "Failed to write to cur_buffer");
 
-    err = clEnqueueWriteBuffer (queue, next_buffer, CL_TRUE, 0,
-                                sizeof (unsigned) * DIM * DIM, image, 0, NULL,
-                                NULL);
-    check (err, "Failed to write to next_buffer");
+  err = clEnqueueWriteBuffer (queue, next_buffer, CL_TRUE, 0,
+			      sizeof (unsigned) * DIM * DIM, image, 0, NULL, NULL);
+  check (err, "Failed to write to next_buffer");
 
-    err = clEnqueueWriteBuffer (queue, change_buffer, CL_TRUE, 0,
-                                sizeof (bool) * (DIM / TILEX) * (DIM / TILEY),
-                                image, 0, NULL, NULL);
-    check (err, "Failed to write to change_buffer");
+  char *table_of_trues = malloc(sizeof(char) * (DIM/TILEX) * (DIM/TILEY));
+  memset(table_of_trues, 1, sizeof(char) * (DIM/TILEX) * (DIM/TILEY));
 
-    err = clEnqueueWriteBuffer (queue, next_change_buffer, CL_TRUE, 0,
-                                sizeof (bool) * (DIM / TILEX) * (DIM / TILEY),
-                                image, 0, NULL, NULL);
-    check (err, "Failed to write to next_change_buffer");
+  err = clEnqueueWriteBuffer (queue, change_buffer, CL_TRUE, 0,
+			      sizeof (char) * (DIM/TILEX) * (DIM/TILEY), table_of_trues, 0, NULL, NULL);
+  check (err, "Failed to write to change_buffer");
 
-    PRINT_DEBUG ('o', "Initial image sent to device.\n");
+  err = clEnqueueWriteBuffer (queue, next_change_buffer, CL_TRUE, 0,
+			      sizeof (char) * (DIM/TILEX) * (DIM/TILEY), table_of_trues, 0, NULL, NULL);
+  check (err, "Failed to write to next_change_buffer");
+
+  PRINT_DEBUG ('o', "Initial image sent to device.\n");
+  free(table_of_trues);
 }
 
 unsigned ocl_compute (unsigned nb_iter)
