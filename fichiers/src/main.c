@@ -240,8 +240,8 @@ int main (int argc, char **argv)
   for(int i = 0; i < DIM/TILEX; ++i) {
       change[i] = (bool*)malloc(DIM/TILEY * sizeof(bool));
       next_change[i] = (bool*)malloc(DIM/TILEY * sizeof(bool));
-      memset(change[i], true, DIM/TILEY);
-      memset(next_change[i], false, DIM/TILEY);
+      memset(change[i], true, DIM/TILEY * sizeof(bool));
+      memset(next_change[i], false, DIM/TILEY * sizeof(bool));
     }
 
   if (opencl_used) {
@@ -390,8 +390,10 @@ int main (int argc, char **argv)
 
     for(int i = 0; i < DIM/TILEX; ++i) {
         free(change[i]);
+        free(next_change[i]);
     }
     free(change);
+    free(next_change);
 
     if (the_finalize != NULL)
     the_finalize ();

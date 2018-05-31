@@ -27,7 +27,7 @@ cl_context context;
 cl_kernel update_kernel;
 cl_kernel compute_kernel;
 cl_command_queue queue;
-cl_mem tex_buffer, cur_buffer, next_buffer;
+cl_mem tex_buffer, cur_buffer, next_buffer, change_buffer, next_change_buffer;
 
 static size_t file_size (const char *filename)
 {
@@ -280,6 +280,20 @@ void ocl_init (void)
   if (!next_buffer)
     exit_with_error ("Failed to allocate output buffer");
 
+  bool *tchange = malloc(sizeof(bool) * (DIM/TILEX) * (DIM/TILEY));
+  memset(tchange, true, (DIM/TILEX) * (DIM/TILEY) * sizeof(bool));
+  bool *fchange = malloc(sizeof(bool) * (DIM/TILEX) * (DIM/TILEY));
+  memset(fchange, false, (DIM/TILEX) * (DIM/TILEY) * sizeof(bool));
+
+  change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(bool) * (DIM/TILEX) * (DIM/TILEY), &tchange, NULL);
+  if (!change_buffer)
+    exit_with_error ("Failed to allocate change buffer");
+
+  next_change_buffer = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(bool) * (DIM/TILEX) * (DIM/TILEY), &fchange, NULL);
+  if (!next_change_buffer)
+    exit_with_error ("Failed to allocate next_change buffer");
+
+
   printf ("Using %dx%d workitems grouped in %dx%d tiles \n", SIZE, SIZE, TILEX, TILEY);
 }
 
@@ -301,6 +315,14 @@ void ocl_send_image (unsigned *image)
 			      sizeof (unsigned) * DIM * DIM, image, 0, NULL, NULL);
   check (err, "Failed to write to next_buffer");
 
+  err = clEnqueueWriteBuffer (queue, change_buffer, CL_TRUE, 0,
+			      sizeof (bool) * (DIM/TILEX) * (DIM/TILEY), image, 0, NULL, NULL);
+  check (err, "Failed to write to change_buffer");
+
+  err = clEnqueueWriteBuffer (queue, next_change_buffer, CL_TRUE, 0,
+			      sizeof (bool) * (DIM/TILEX) * (DIM/TILEY), image, 0, NULL, NULL);
+  check (err, "Failed to write to next_change_buffer");
+
   PRINT_DEBUG ('o', "Initial image sent to device.\n");
 }
 
@@ -316,10 +338,13 @@ unsigned ocl_compute (unsigned nb_iter)
     err = 0;
     err |= clSetKernelArg (compute_kernel, 0, sizeof (cl_mem), &cur_buffer);
     err |= clSetKernelArg (compute_kernel, 1, sizeof (cl_mem), &next_buffer);
+    err |= clSetKernelArg (compute_kernel, 2, sizeof (cl_mem), &change_buffer);
+    err |= clSetKernelArg (compute_kernel, 3, sizeof (cl_mem), &next_change_buffer);
+
     check (err, "Failed to set kernel arguments");
 
 #ifdef __APPLE__
-    err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, NULL,
+    err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
 				  0, NULL, NULL);
 #else 
 	err = clEnqueueNDRangeKernel (queue, compute_kernel, 2, NULL, global, local,
@@ -329,6 +354,7 @@ unsigned ocl_compute (unsigned nb_iter)
 
     // Swap buffers
     { cl_mem tmp = cur_buffer; cur_buffer = next_buffer; next_buffer = tmp; }
+    { cl_mem tmp = change_buffer; change_buffer = next_change_buffer; next_change_buffer = tmp; }
 
   }
 
