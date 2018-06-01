@@ -1,7 +1,7 @@
 export OMP_NUM_THREADS
 export GOMP_CPU_AFFINITY
 
-ITE=$(seq 10) # nombre de mesures
+ITE=$(seq 15) # nombre de mesures
 THREADS="1 2 4 6 8" # nombre de threads
 SIZES="64 128 256 512 1024 2048" # taille de plateau
 GOMP_CPU_AFFINITY=$(seq 0 8) # vérifier à l'aide de lstopo la bonne alternance des processeurs
