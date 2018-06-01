@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <omp.h>
 
-#define COLOR_TILES 1
+#define COLOR_TILES 0
 
 static void compute_new_state (int y,
                                int x)
