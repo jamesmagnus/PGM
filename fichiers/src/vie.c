@@ -176,7 +176,7 @@ unsigned vie_compute_seq_tile_opt (unsigned nb_iter)
 unsigned vie_compute_omp(unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(runtime)
         for (int i = 0; i < DIM; i++)
             for (int j = 0; j < DIM; j++)
                 compute_new_state (i, j);
@@ -193,7 +193,7 @@ unsigned vie_compute_omp(unsigned nb_iter)
 unsigned vie_compute_omp_tile (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
-#pragma omp parallel for collapse(2) schedule(static)
+#pragma omp parallel for collapse(2) schedule(runtime)
         for (int tx = 0; tx < DIM / TILEX; ++tx)
             for (int ty = 0; ty < DIM / TILEY; ++ty)
                 for (int i = tx * TILEX; i < (tx + 1) * TILEX; i++)
@@ -213,7 +213,7 @@ unsigned vie_compute_omp_tile_opt (unsigned nb_iter)
 {
     for (unsigned it = 1; it <= nb_iter; it++) {
         reset_next_change();
-#pragma omp parallel for collapse(2) schedule(dynamic)
+#pragma omp parallel for collapse(2) schedule(runtime)
         for (int tx = 0; tx < DIM / TILEX; ++tx)
             for (int ty = 0; ty < DIM / TILEY; ++ty)
                 if (tile_need_update(tx, ty))
