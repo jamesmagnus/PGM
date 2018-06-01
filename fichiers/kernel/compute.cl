@@ -56,17 +56,6 @@ __kernel void scrollup (__global unsigned *in,
 ////////////////////////////////////////////////////////////////////////////////
 
 
-static unsigned random_color()
-{
-    unsigned color = 0x000000ff;
-
-    // color += ((get_global_id(0) - get_local_id(0)) / TILEX) & 0xff;
-    // color += ((get_global_id(1) - get_local_id(1)) / TILEY & 0xff) << 8;
-    color += ((get_group_id(0) * 4) & 0xff) << 8;
-    color += ((get_group_id(1) * 4) & 0xff) << 24;
-    // color += 23 << 16;
-    return color;
-}
 
 static unsigned compute_new_color(__global unsigned *in,
                                   int x,
@@ -105,17 +94,6 @@ __kernel void vie (__global unsigned *in,
     out [y * DIM + x] = compute_new_color(in, x, y);
 }
 
-static bool tile_need_update(int tx,
-                             int ty,
-                             __global bool *change)
-{
-    for (int x = tx - 1; x <= tx + 1; ++x)
-        if (( x >= 0) && ( x < DIM / TILEX) )
-            for (int y = ty - 1; y <= ty + 1; ++y)
-                if (( y >= 0) && ( y < DIM / TILEY) && change[0])
-                    return true;
-    return false;
-}
 
 __kernel void vie_opt (__global unsigned *in,
                        __global unsigned *out,
@@ -135,10 +113,13 @@ __kernel void vie_opt (__global unsigned *in,
     int ty = (yglob - yloc) / TILEY;
 
     __local char to_update;
+    __local char changed;
+
 
     // Check if this tile has to be updated
     if (( xloc == 0) && ( yloc == 0) ) {
       to_update = 0;
+      changed = 0;
 
       for (int x = tx - 1; x <= tx + 1; ++x)
           if (( x >= 0) && ( x < DIM / TILEX) )
@@ -146,20 +127,13 @@ __kernel void vie_opt (__global unsigned *in,
                   if (( y >= 0) && ( y < DIM / TILEY)
                       && change[y * (DIM / TILEY) + x])
                       to_update = 1;
-
-      next_change[ty * (DIM / TILEY) + tx] = to_update;
+        
     }
 
 // Be sure that every thread of the group wait
 // for to_update being computed
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    __local char changed;
-
-    if (xloc == 0 && yloc == 0)
-      changed = 0;
-
-    barrier(CLK_LOCAL_MEM_FENCE);
 
     if (to_update) {
         unsigned color = compute_new_color(in, xglob, yglob);
@@ -179,8 +153,8 @@ __kernel void vie_opt (__global unsigned *in,
         out[yglob * DIM + xglob] = in[yglob * DIM + xglob];
   #endif
     }
-
-    barrier(CLK_GLOBAL_MEM_FENCE);
+    
+    barrier(CLK_LOCAL_MEM_FENCE);
 
     if (xloc == 0 && yloc == 0) 
       next_change[ty * (DIM/TILEY) + tx] = changed;
