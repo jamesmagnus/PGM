@@ -3,7 +3,7 @@
 args = commandArgs(trailingOnly=TRUE)
 
 
-nbFichiers = length(args) 
+nbFichiers = length(args)
 
 if (nbFichiers != 1) {
   stop("Un unique fichier svp", call.=FALSE)
@@ -32,6 +32,6 @@ data_summary <- function(data, varname, groupnames){
 data_stat <- data_summary(data,"V3", groupnames=c("V1","V2"))
 
 
-courbes <- ggplot(data=data_stat, aes(x=V2, y=V3,  color=factor(V1))) + geom_line()  + scale_y_log10()  + labs(color="taille") + geom_errorbar(aes( ymin=V3-sd, ymax=V3+sd), width=0.2, size=1)
+courbes <- ggplot(data=data_stat, aes(x=V2, y=V3,  color=factor(V1))) + geom_line()  + scale_y_log10()  + labs(color="") + geom_errorbar(aes( ymin=V3-sd, ymax=V3+sd), width=0.2, size=1)
 
 courbes
